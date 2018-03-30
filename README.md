@@ -38,7 +38,7 @@ This html file is barebones and contains a `script` tag to include our bundled r
 
 ### index.js
 
-This is the main entrypoint for the react application, here we import the `render` method from `react-dom`, this will let us render our app into the webpage. It does so by getting a reference to an html element:
+This is the main entrypoint for the react application. Here, we import the `render` method from `react-dom`. This will let us render our app into the webpage. It does so by getting a reference to an html element:
 
 ```javascript
 document.getElementById('main')
@@ -107,7 +107,7 @@ render(React.createElement(Main, null ,null), document.getElementById('main'))
 
 ```
 
-If you go look at the changes in your browser, you should see `Hello From a new Component!` on the page, great!
+If you switch back to your browser at `http://localhost:8080`, you should see `Hello From a new Component!` on the page; great!
 
 ### JSX
 
@@ -163,7 +163,7 @@ The JSX is generally easier to view the structure of a component, as well as red
 
 ### Props
 
-Props are a way to make your components dynamic, parent elements can pass any number of variables, or primitives to child components. Let's take a look at making our `Main.jsx` say something different:
+Props are a way to make your components dynamic. Parent elements can pass any number of variables or primitives to child components. Let's take a look at making our `Main.jsx` say something different:
 
 ```jsx
 render() {
