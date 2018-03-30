@@ -31,11 +31,12 @@ This workshop will teach you the following:
 
 ## Explanation
 
+### index.html
 This project runs a local development server, and serves the `index.html` file on the default route (`http://localhost:8080`)
 
 This html file is barebones and contains a `script` tag to include our bundled react app, and a `div` tag with an id that we can reference.
 
-## index.js
+### index.js
 
 This is the main entrypoint for the react application, here we import the `render` method from `react-dom`, this will let us render our app into the webpage. It does so by getting a reference to an html element:
 
