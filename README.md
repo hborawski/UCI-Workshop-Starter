@@ -215,9 +215,7 @@ If you visit the API endpoint we will be using later (https://dog.ceo/api/breeds
 
 Now when you load your page, you should see the image of the dog! But once you know what breed that one dog is, it wouldn't be much of a game, so let's get a new image URL each time the page loads.
 
-### Data fetching and Component Lifecycle
-
-We won't get into the full React Component Lifecycle today, but we will be using `componentWillMount` so we can make network requests before the component has been loaded onto the page.
+### Data fetching and State
 
 We make network requests in javascript with the `fetch` method. This is a part of the browser javascript engine, and is available in the global namespace:
 
@@ -225,13 +223,13 @@ We make network requests in javascript with the `fetch` method. This is a part o
 //Main.jsx
 
 export default class Main extends React.Component {
-    componentWillMount() {
+    getDogImage() {
         fetch('https://dog.ceo/api/breeds/image/random')
-        .then(function(response) {
+        .then((response) => {
         	// Convert the response to JSON so its easier to work with
             return response.json()
         })
-        .then(function(json) {
+        .then((json) => {
 			// Now we have a JSON object!
         })
     }
@@ -240,4 +238,132 @@ export default class Main extends React.Component {
 ```
 
 The `fetch` method returns a `Promise` which is javascripts way of handling asynchronous tasks. We won't be going in depth on promises here today, but we will provide all of the promise based code.
+
+But what do we do with the data? How do we get it to make changes in our application? We need to employ state into our application, where the URL of the current image is part of that state, and when the state changes, so does our presentation of the state. React makes this very simple.
+
+#### Setting up state
+
+We need to add an initial state to our application, we do this in the constructor:
+
+```jsx
+export default class Main extends React.Component {
+  constructor(props) {
+    super(props) // make sure we satisfy the constructor of the inherited class
+    this.state = { // state needs to be an object
+      url: null // we will set the url to null to start
+    }
+  }
+}
+```
+
+#### Updating state
+
+Now we need to update the state when we get the new url, if you visit the api endpoint manually, you'll see the url is in the `message` part of the response:
+
+```jsx
+getDogImage() {
+        fetch('https://dog.ceo/api/breeds/image/random')
+        .then((response) => {
+        	// Convert the response to JSON so its easier to work with
+            return response.json()
+        })
+        .then((json) => {
+            // this creates a new state and sets it as the state of our component
+			this.setState({
+                url: json.message
+			})
+        })
+    }
+```
+
+Now when `getDogImage` is called, it will update the `url` part of the state once it receives its API response. But how will that update the interface?
+
+#### Reacting to state changes
+
+Any usage of `this.state` in the `render` method of a component will trigger it to re-render when there is a change to the member in use:
+
+```jsx
+render() {
+  return <div>
+    <DogImage url={this.state.url}/>
+  </div>
+}
+```
+
+Now we just need to make sure `getDogImage` is called when the application loads to get our first image.
+
+### React Lifecycle
+
+We won't be going in depth for the lifecycle of React today, but we will use `componentWillMount` to fetch an image when the application loads. To do this we need to make two changes:
+
+
+
+The first change is in the constructor, we need to bind the context of `getDogImage` to the instance of our component:
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+        url: null
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+}
+```
+
+This makes sure that when this instance of `Main` calls `getDogImage` it always is referencing the same instance when using `this.setState`. Since we will only have one instance of Main, there wouldn't be any problem, but this is a required step for React.
+
+
+
+The second change is adding `componentWillMount`:
+
+```jsx
+export default class Main extends React.Component {
+	componentWillMount() {
+        this.getDogImage()
+	}
+}
+```
+
+Now whenever you reload your page, you will see a different dog image!
+
+#### Main.jsx
+
+The full `Main.jsx` now will look something like this:
+
+```jsx
+import React from 'react';
+import DogImage from './DogImage'
+
+export default class Main extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      url: null
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+  }
+
+  componentWillMount() {
+    this.getDogImage()
+  }
+
+  getDogImage() {
+    fetch('https://dog.ceo/api/breeds/image/random')
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      this.setState({
+        url: json.message
+      })
+    })
+  }
+  render() {
+    return <div>
+      <DogImage url={this.state.url}/>
+    </div>
+  }
+}
+
+```
 
