@@ -146,7 +146,7 @@ At this level there doesn't seem to be a dramatic difference, but lets think abo
 return React.createElement(
   'div',
    null,
-   React.CreateElement(
+   React.createElement(
      'ul',
      null,
      React.createElement('li', null, 'List Item 1'),
