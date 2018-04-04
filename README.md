@@ -391,3 +391,430 @@ export default class Main extends React.Component {
 
 ```
 
+### Stateful vs Stateless
+
+State is useful when we need our UI to react to changes in the information that our component keeps track of, but not all components will keep track of state. If we take a look at our  `DogImage` component, it ends up being pretty simple. It uses the URL given to it to return an `img` tag. If it has an input and an output, and doesn't modify anything else, does it need to have all the same functionality as a component that maintains state? It does not, and react provides a way to do this. When it boils down to it, the `DogImage` component is nothing more than a function, it takes in props and returns a react element. So we can rewrite it as a function that is just the render portion from the class:
+
+```jsx
+const DogImage = (props) => {
+    return <img src={props.url}/>
+}
+
+export default DogImage
+```
+
+**Note:** since we are just using a function now, and not a class, all references to `props` are just to `props`, and not through `this.props`.
+
+While we are here, lets extend the functionality of the `DogImage` component to indicate when it's loading a new image. We set up our initial state to have the `url` be `null`. In our component we can check if `props.url` is null and conditionally return a different element:
+
+```jsx
+const DogImage = (props) => {
+    if (props.url !== null) {
+        return <img src={props.url}/>
+    } else {
+        return <p>Loading</p>
+    }
+}
+
+export default DogImage
+```
+
+Now you will see your loading text while the API request is being made, and it will be switched for the image once the url is updated in the state.
+
+### User Input
+
+React was created to build SPA's, single page apps. So we shouldn't be reloading our page every time to get new content, we should have it fetch new data and update the state. So let's hook up a button to get a new dog image.
+
+```jsx
+//Main.jsx
+...
+render() {
+  return <div>
+	<DogImage url={this.state.url}/>
+	<button onClick={this.getDogImage}>New Dog</button>
+  </div>
+}
+```
+
+Here we are passing a reference to the `getDogImage` function to the `onClick` attribute for the button. Now your page should have a button that loads a new dog image when you click it! But wait, where did the loading text go? Since we only show the loading text if `props.url` is `null`, that only happens when the page first loads. To make our loading text show every time the image is loading, let's reset the `url` in our state each time we fetch a new image:
+
+```jsx
+getDogImage() {
+    this.setState({
+      url: null
+    })
+    fetch('https://dog.ceo/api/breeds/image/random')
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      this.setState({
+        url: json.message
+      })
+    })
+  }
+```
+
+By setting the state for `url` back to null before making our API call, it will show "Loading" until the network request completes and we have the new url. Add this to your `getDogImage` method and try it out.
+
+## Guessing
+
+Now that we can fetch new images without reloading the page, we can move on to the guessing portion of the app. To do this, we need to get the breed of the current displayed dog. The breed is a part of the path for the image, if we split on `/` it's the 6th element in the array, so let's add it to our state:
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+      url: null,
+      breed: null // add the breed to the initial state as null
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+  }
+```
+
+And when we fetch the image, we set it in the state:
+
+```jsx
+getDogImage() {
+    this.setState({
+      breed: null, // reset the breed when getting a new image
+      url: null
+    })
+    fetch('https://dog.ceo/api/breeds/image/random')
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      this.setState({
+        url: json.message,
+        breed: json.message.split('/')[5] // pull element 6 (index 5) from the split url
+      })
+    })
+  }
+```
+
+For debugging purposes, we can display the current breed in our `render` function, and remove it later once we have everything working:
+
+```jsx
+render() {
+    return <div>
+      <p>{this.state.breed}</p>
+      <DogImage url={this.state.url}/>
+      <button onClick={this.getDogImage}>New Dog</button>
+    </div>
+  }
+```
+
+Now you should see the breed of the current dog displayed.
+
+### Making Choices
+
+To create the choices for buttons for our users to click, we need to get random choices to pad around the real answer. We can use the `https://dog.ceo/api/breeds/list/all` endpoint to get all the breeds and subbreeds of dogs. The structure of this response is an object where the key is the breed, and the value is an array of subbreeds. The format we have for our current breed is `${breed}-${subbreed}` so we will need to do some processing on this data to get it in the format we need. Rather than go through this step by step, we will provide the code for this.
+
+First, let's setup the initial state for the full list of breeds:
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+      url: null,
+      breed: null,
+      allBreeds: []
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+  }
+```
+
+Then we can add a `getChoices` function to get the list of breeds:
+
+```jsx
+getChoices() {
+    fetch('https://dog.ceo/api/breeds/list/all')
+    .then(res => res.json())
+    .then(data => {
+      // The response from the api is an object where the key is breed name
+      // and the value is an array of sub-breeds
+      const breedNames = Object.keys(data.message)
+      // Map returns a new array that is populated with the return values from
+      // the function passed to it
+      const subbreedArrays = breedNames.map(breed => {
+        const subbreeds = data.message[breed]
+        // If the length is 0, there are no sub-breeds
+        if (subbreeds.length === 0) {
+          // return it as an array so we can concatenate it later to other arrays
+          return [breed]
+        } else {
+          // If there are sub-breeds, we need to merge the main breed name
+          // with the sub-breed name
+          return subbreeds.map(subbreedName => `${breed}-${subbreedName}`)
+        }
+      })
+      const flattenedBreedArray = subbreedArrays.reduce(
+        // Merge the arrays by concatenating them
+        (accumulation, currentValue) => accumulation.concat(currentValue)
+      )
+      this.setState({
+        allBreeds: flattenedBreedArray
+      })
+    })
+  }
+```
+
+And we can reference this the same way we did for `getDogImage`:
+
+In `constructor`:
+
+```jsx
+this.getChoices = this.getChoices.bind(this)
+```
+
+And in `componentWillMount`:
+
+```jsx
+this.getChoices()
+```
+
+### MultipleChoice.jsx
+
+Now we can create a component to handle creating the buttons that our user will click. This will take in the array of all breeds as a prop, as well as the current breed that `Main.jsx` has in it's state. This component will need to maintain it's own state so we can keep track of whether the guess was correct or not.
+
+```jsx
+import React from 'react'
+
+export default class MultipleChoice extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            correct: null
+        }
+    }
+    
+    render() {
+        return <div></div>
+    }
+}
+```
+
+To make the choices we need to inject our current breed into a selection of random breeds from our list of all breeds. We are providing a function to randomize the choices for you as a time saver:
+
+```jsx
+createChoices(allBreeds, currentBreed, length = 4) {
+  const shuffleArray = arr => (
+    // Map to array of [randomFloat, originalValue]
+    // sort based on the floats
+    // pull original values back into single array
+    arr.map(a => [Math.random(), a]).sort((a, b) => a[0] - b[0]).map(a => a[1])
+  )
+  // Remove our current breed from the possible choices before shuffling
+  // we will add it back in later to ensure its a choice
+  // NOTE: filter returns a new array and does not modify the original
+  const choicesWithoutCurrentBreed = allBreeds.filter(b => b !== currentBreed)
+  // Randomize the order of the array
+  const shuffledChoices = shuffleArray(choicesWithoutCurrentBreed)
+  // Pull the first few items off the array so we have a random selection
+  // NOTE: slice returns a new array and does not modify the original
+  const fewerChoices = shuffledChoices.slice(0, length -1)
+  // Add on our actual breed so the right answer is available
+  const choicesWithCurrentBreed = fewerChoices.concat(currentBreed)
+  // Randomize the order again so we can't predict where the real answer is
+  const shuffledFinalChoices = shuffleArray(choicesWithCurrentBreed)
+  return shuffledFinalChoices
+}
+```
+
+We can then use this function in our `render` function to create some choices. But don't forget to bind the context for this function!
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+        correct: null
+    }
+    this.createChoices = this.createChoices.bind(this)
+}
+...
+render() {
+    const choices = this.createChoices(this.props.allBreeds, this.props.currentBreed)
+    return <div></div>
+}
+```
+
+Now we have `choices` as an array of strings, we can generate the buttons using `map`. `map` returns a new array, so we just need it to return an array of buttons:
+
+```jsx
+render() {
+    const choices = this.createChoices(this.props.allBreeds, this.props.currentBreed)
+    return <div>
+    	{
+            choices.map(choice => <button>{choice}</button>)
+    	}
+    </div>
+}
+```
+
+Now whenever you get a new dog image, it will have buttons that show a few different choices (including the correct one)! The only thing left is to make it so we can have our users guess and get some feedback. Let's add a function to handle updating the state with our guess, that takes the guess as a parameter:
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+        correct: null
+    }
+    this.createChoices = this.createChoices.bind(this)
+    this.guessDog = this.guessDog.bind(this) // bind the context!
+}
+guessDog(breed) {
+    this.setState({
+        // Set correct to be a boolean that is the comparison of the guess and our current
+        // breed. The reason we
+        correct: breed === this.props.currentBreed
+    })
+}
+```
+
+And in our render function we need to call this function when a button is clicked. `onClick` takes a function as its value, and in `Main.jsx` we passed a reference to a function:
+
+```jsx
+<button onClick={this.getDogImage}>New Dog</button>
+```
+
+But here we need to pass a value to the function, so we will give `onClick` an anonymous function:
+
+```jsx
+<button onClick={() => this.guessDog(choice)}>
+```
+
+This way when the button is clicked, it runs this anonymous function, and the function it runs has the parameter to pass to `guessDog` already inserted. So now your render function will look like:
+
+```jsx
+render() {
+    const choices = this.createChoices(this.props.allBreeds, this.props.currentBreed)
+    return <div>
+      {
+        choices.map(choice => <button onClick={() => this.guessDog(choice)}>{choice}</button>)
+      }
+    </div>
+  }
+```
+
+### Lifecycle Continued
+
+If you go to your browser you will notice some interesting behavior, when you click one of the choices, the list will reshuffle. This is because we are updating the state, and when there are state updates, the `render` funciton gets called again, and that runs our `createChoices` code every time. 
+
+We don't need to create choices each time we render, we only need to create the choices when the `currentBreed` prop changes. We will need to make a few changes for this to work.
+
+1. Add `choices` to our state
+2. Update the choices in our state when we get a new `currentBreed`
+3. Use the choices from our state in the `render` method
+
+So let's update our constructor for the initial state:
+
+```jsx
+constructor(props) {
+    super(props)
+    this.state = {
+      choices: [],
+      correct: null
+    }
+    this.guessDog = this.guessDog.bind(this)
+    this.createChoices = this.createChoices.bind(this)
+  }
+```
+
+Now we will implement another lifecycle method `componentWillReceiveProps` to update our state when we are getting a new breed. Since our component is always loaded, `componentWillMount` only gets triggered once, even if the props change. `componentWillReceiveProps` gets triggered every time the props are updated. When we fetch a new dog image, we first reset the `url` and `breed` to `null` before setting it to the final value. This is helpful for us now, we can check to make sure the `currentBreed` prop is not null in the update, and if it isn't update our choices. If we update when it is null, we will see the buttons render with a null button, then render again when the currentBreed gets set.
+
+```jsx
+// nextProps is the props the component is going to have
+// we can use that to synchronize our state
+componentWillReceiveProps(nextProps) {
+    if(nextProps.currentBreed !== null) {
+        this.setState({
+            choices: this.createChoices(this.props.allBreeds, nextProps.currentBreed)
+        })
+    }
+}
+```
+
+And finally, in our `render` method:
+
+```jsx
+render() {
+    return <div>
+      {
+        this.state.choices.map(choice => <button onClick={() =>this.guessDog(choice)}>{choice}</button>)
+      }
+    </div>
+  }
+```
+
+Now when you visit your browser, the buttons will only change when the dog image changes!
+
+#### User feedback
+
+Now let's add something so our user knows if they got the guess right or not, we already have this information in `this.state.correct` so it's just a matter of displaying it:
+
+render() {
+
+```jsx
+return <div>
+  {
+    this.state.choices.map(choice => <button onClick={() =>this.guessDog(choice)}>{choice}</button>)
+  }
+  <p>{this.state.correct ? 'Correct!' : 'Wrong!'}</p>
+</div>
+```
+ Now when you load up, it'll start by saying "Wrong!" but when you choose the correct answer, it'll switch to "Correct!".
+
+#### Ternary Operator
+
+When you are working inside JSX tags, you aren't able to use traditional `if/else` conditionals. This is because all javascript statements (inside curly braces) must return a react element. There are a couple ways to handle this, the most common way is using the ternary operator as we just did, or you can do the computation before you start your tags, and interpolate the variable after, such as:
+
+```jsx
+render() {
+	let message = '';
+    if (this.state.correct) {
+        message = 'Correct!'
+    } else {
+        message = 'Wrong!'
+    }
+    return <p>{message}</p>
+}
+```
+
+However, that code is more verbose, and react is primarily a *functional* library, so generally, using a solution that does not use mutable variables is preferred.
+
+##### Ternary Syntax
+
+The ternary operator is a single conditional that returns a value:
+
+```jsx
+comparisonCondition ? returnValueIfTrue : returnValueIfFalse
+```
+
+### Cleaning up
+
+There are still a few remaining quirks we need to clean up before we can call it a day, the first one being that by default, we tell a user they are wrong before they have even guessed. This is why we initially set our state of `correct` to null. Once a user guesses, `correct` will be a boolean, so we can use a null check to see if the user has guessed or not:
+
+```jsx
+<p>{this.state.correct === null ? '' : this.state.correct ? 'Correct!' : 'Wrong!'}</p>
+```
+
+Here we are nesting our ternary operators, we check if `correct` is null, if it is, we return empty string, otherwise, we return the result of our original ternary condition. Now when you load it up, you won't see feedback until you make a guess. But once you do, it'll persist between dogs! Not a problem, we know when we're getting a new dog, so we can reset our state for `correct` then.
+
+```jsx
+componentWillReceiveProps(nextProps) {
+    if (nextProps.currentBreed !== null) {
+      this.setState({
+        correct: null,
+        choices: this.createChoices(this.props.allBreeds, nextProps.currentBreed)
+      })
+    }
+  }
+```
+
+Now when the dog reloads, we get a clean slate to start guessing. The last thing to do is to remove our debug with the current breed so we actually need to guess! So head back to `Main.jsx` render method and remove:
+
+```jsx
+<p>{this.state.breed}</p>
+```
+
