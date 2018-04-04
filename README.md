@@ -21,7 +21,6 @@ This workshop will teach you the following:
 - Create and render React components
 - Work with props and states
 - Difference between Stateful and Stateless
-- Integrate with the Redux Store
 - Integrate REST services into application
 
 
@@ -44,7 +43,7 @@ This is the main entrypoint for the react application. Here, we import the `rend
 document.getElementById('main')
 ```
 
-The first argument for render is the content we want it to render. To start, we are simply rendering "Hello World"
+The first argument of the `render` function is the content we want to render. For now, we are simply rendering "Hello World"
 
 ```jsx
 <div>Hello World</div>
@@ -54,13 +53,13 @@ The first argument for render is the content we want it to render. To start, we 
 
 Create a new file called ```Main.jsx``` under the ```src``` directory. 
 
-JSX is a syntax extension of the JavaScript language. It isn't required to work with JSX, but it makes it much easier to work with UI elements within JS code. In this workshop we will create a component with plain JS and one with JSX to see the difference.
+JSX is a syntax extension of the JavaScript language. It isn't required to work with JSX, but it makes it much easier to work with UI elements within JS code. In this workshop we will create a component with plain JS and one with JSX to explore the benefits of using JSX.
 
 
 
 ### Plain Javascript
 
-In your `Main.jsx` file (don't worry about the `jsx` extension, we can write plain javascript in here), import react, and set up a new class:
+In your `Main.jsx` file, import react and set up a new class:
 
 ```javascript
 import React from 'react';
@@ -70,13 +69,15 @@ export default class Main extends React.Component {
 }
 ```
 
+Although our file has a `jsx` extension, we can still write plain JS in here.
+
 `export default` means that when we import this file from another file, we get access to this class.
 
 #### Rendering
 
-All React components must have a `render` function. This function's main purpose is to populate the template view we will be showing users with updated data.
+All React components must have a `render` function. This function's main purpose is to render a template view with data.
 
-Let's add one to our component:
+Let's add a `render` function to our `Main.jsx` component:
 
 ```javascript
 export default class Main extends React.Component {
@@ -86,7 +87,11 @@ export default class Main extends React.Component {
 }
 ```
 
-Since we are using plain javascript, we will be creating react elements using the React library API. `createElement` takes 3 arguments, `type`, `props` and `children`.
+Since we are using plain javascript, we will be creating react elements using `createElement()` from the React library API. 
+
+`createElement` takes 3 arguments: `type`, `props` and `children`.
+
+Let's add the following to `render()`
 
 ```javascript
 render() {
@@ -94,7 +99,7 @@ render() {
 }
 ```
 
-We are giving this element a type `div` and a ```string``` as a child. This will eventually render into an html element. This component doesn't need `props` yet, we will talk about props later.
+We are giving this element a type `div` and a ```string``` as a child. This will eventually render into an html element. We will talk about props later.
 
 Now in `index.js` we need to import our new component and render it instead of the old `<div>Hello World</div>` we had in there:
 
@@ -133,7 +138,9 @@ render(<Main/>, document.getElementById('main'))
 
 #### Comparison
 
-This might not look that much different at this level, but lets think about HTML and how it is structured. HTML elements are a tree, and are generally nested pretty heavily. If you were to to this with `createElement`, you would end up with something like this:
+What just happened?
+
+At this level there doesn't seem to be a dramatic difference, but lets think about HTML and how it is structured. HTML elements are trees, and generally nested pretty heavily. If you were to continue with our original `createElement` approach, you would end up with something like this:
 
 ```javascript
 return React.createElement(
@@ -148,7 +155,7 @@ return React.createElement(
  )
 ```
 
-Where in JSX you would have:
+Whereas in JSX you would have:
 
 ```jsx
 return <div>
@@ -159,11 +166,11 @@ return <div>
 </div>
 ```
 
-The JSX is generally easier to view the structure of a component, as well as reduce the amount of boilerplate code needed to render.
+JSX allows us to structure code in a more uniform manner. It makes it easier to dissect the parts of a component and reduces the amount of boilerplate code needed to render.
 
 ### Props
 
-Props are a way to make your components dynamic. Parent elements can pass any number of variables or primitives to child components. Let's take a look at making our `Main.jsx` say something different:
+Props are a way to make components dynamic. Parent elements can pass any number of variables or primitives to child components. Let's take a look at making our `Main.jsx` say something different:
 
 ```jsx
 render() {
@@ -171,7 +178,9 @@ render() {
 }
 ```
 
-`props` is a member of our class, so we access it through `this` to reference our current instance. Beyond that, `props` is just a regular javascript object, mapping keys to values. In this scenario, we are looking to use the value of the `message` key from our props. In `index.js` we can pass it in easily:
+`props` is a member of our class, so we access it through `this` to reference our current instance. Beyond that, `props` is just a regular javascript object, mapping keys to values. In this scenario, we are looking to use the value of the `message` key from our props. 
+
+Let's pass in `message` from `index.js`:
 
 ```jsx
 render(<Main message='from props'/>, document.getElementById('main'))
@@ -179,13 +188,15 @@ render(<Main message='from props'/>, document.getElementById('main'))
 
 Now when you visit your webpage, you should see the message `Hello from props`
 
-## Building our Dog guessing site
+## Building our Dog Quiz site
 
 Now that you know how to make React components, we can use `Main.jsx` as a container to hold various components and interact with the API.
 
 ### DogImage.jsx
 
-We want to have a component to display the image of the dog, while we could just use an `img` tag, we would like to show some loading text while transitioning between dogs without putting too much conditional logic in `Main.jsx`. Let's start by getting an image to load:
+We want to create a component that displays the image of a dog. While we could just use an `img` tag, we would like to show some loading text during transitions between dogs without putting too much conditional logic in `Main.jsx`. 
+
+Let's start by creating a file `DogImage.jsx` under `src` and getting an image to load:
 
 ```jsx
 // DogImage.jsx
@@ -214,11 +225,13 @@ export default class Main extends React.Component {
 
 If you visit the API endpoint we will be using later (https://dog.ceo/api/breeds/image/random), you can get a random dog image URL to put in as a test.
 
-Now when you load your page, you should see the image of the dog! But once you know what breed that one dog is, it wouldn't be much of a game, so let's get a new image URL each time the page loads.
+Now when you load your page, you should see the image of the dog 🐶!  
+
+But since you know what breed that dog is, it's not much of a game, so let's get a new image URL each time the page loads.
 
 ### Data fetching and State
 
-We make network requests in javascript with the `fetch` method. This is a part of the browser javascript engine, and is available in the global namespace:
+We make network requests in javascript with the `fetch` method. This is a part of the browser javascript engine and is readily available in the global namespace:
 
 ```jsx
 //Main.jsx
@@ -238,15 +251,21 @@ export default class Main extends React.Component {
 }
 ```
 
-The `fetch` method returns a `Promise` which is javascripts way of handling asynchronous tasks. We won't be going in depth on promises here today, but we will provide all of the promise based code.
+The `fetch` method returns a `Promise` which is javascripts way of handling asynchronous tasks. We won't be going in depth on promises here, but we will provide all of the promise based code. All you need to know right now is that when a `fetch` call is complete, the `Promise` returned contains access to data that we requested. In our case, we make a call via `fetch('https://dog.ceo/api/breeds/image/random')` which returns something like this:
 
-But what do we do with the data? How do we get it to make changes in our application? We need to employ state into our application, where the URL of the current image is part of that state, and when the state changes, so does our presentation of the state. React makes this very simple.
+```
+{"status":"success","message":"https:\/\/dog.ceo\/api\/img\/springer-english\/n02102040_1217.jpg"}
+```
+
+But what do we do with this? How do we update our application to show these new dog images when we generate them? This is where `state` comes in. By setting the URL of the returned image as part of the `state` object, when the state changes, so does our presentation of the state. React makes this very simple.
 
 #### Setting up state
 
 We need to add an initial state to our application, we do this in the constructor:
 
 ```jsx
+// Main.jsx
+
 export default class Main extends React.Component {
   constructor(props) {
     super(props) // make sure we satisfy the constructor of the inherited class
@@ -259,9 +278,11 @@ export default class Main extends React.Component {
 
 #### Updating state
 
-Now we need to update the state when we get the new url, if you visit the api endpoint manually, you'll see the url is in the `message` part of the response:
+Now we need to update the state when we get the new url. If you take a look at the sample response from above, you'll see the url is in the `message` part of the response, so we extract it by converting the response into a JSON object and setting `url: json.message` in `this.setState()`:
 
 ```jsx
+// Main.jsx
+
 getDogImage() {
         fetch('https://dog.ceo/api/breeds/image/random')
         .then((response) => {
@@ -277,13 +298,15 @@ getDogImage() {
     }
 ```
 
-Now when `getDogImage` is called, it will update the `url` part of the state once it receives its API response. But how will that update the interface?
+Now when `getDogImage` is called, the `url` in `state` will update with the new returned response. But how will that update the interface?
 
 #### Reacting to state changes
 
 Any usage of `this.state` in the `render` method of a component will trigger it to re-render when there is a change to the member in use:
 
 ```jsx
+// Main.jsx
+
 render() {
   return <div>
     <DogImage url={this.state.url}/>
@@ -295,13 +318,13 @@ Now we just need to make sure `getDogImage` is called when the application loads
 
 ### React Lifecycle
 
-We won't be going in depth for the lifecycle of React today, but we will use `componentWillMount` to fetch an image when the application loads. To do this we need to make two changes:
+We will use `componentWillMount` to fetch an image when the application loads. This is part of the React Lifecycle, but we will not go in depth on this subject here. To do this we need to make two changes:
 
-
-
-The first change is in the constructor, we need to bind the context of `getDogImage` to the instance of our component:
+The first change is in the constructor. We need to bind the context of `getDogImage` to the instance of our component:
 
 ```jsx
+// Main.jsx
+
 constructor(props) {
     super(props)
     this.state = {
@@ -318,10 +341,10 @@ This makes sure that when this instance of `Main` calls `getDogImage` it always 
 The second change is adding `componentWillMount`:
 
 ```jsx
-export default class Main extends React.Component {
-	componentWillMount() {
-        this.getDogImage()
-	}
+// Main.jsx
+
+componentWillMount() {
+	this.getDogImage()
 }
 ```
 
@@ -329,7 +352,7 @@ Now whenever you reload your page, you will see a different dog image!
 
 #### Main.jsx
 
-The full `Main.jsx` now will look something like this:
+The full `Main.jsx` will now look something like this:
 
 ```jsx
 import React from 'react';
