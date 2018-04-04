@@ -574,6 +574,86 @@ And in `componentWillMount`:
 this.getChoices()
 ```
 
+At this point, `Main.jsx` will look something like:
+
+```jsx
+import React from 'react';
+import DogImage from './DogImage'
+
+export default class Main extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      url: null,
+      breed: null,
+      allBreeds: []
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+    this.getChoices = this.getChoices.bind(this)
+  }
+
+  componentWillMount() {
+    this.getChoices()
+    this.getDogImage()
+  }
+
+  getChoices() {
+    fetch('https://dog.ceo/api/breeds/list/all')
+    .then(res => res.json())
+    .then(data => {
+      // The response from the api is an object where the key is breed name
+      // and the value is an array of sub-breeds
+      const breedNames = Object.keys(data.message)
+      // Map returns a new array that is populated with the return values from
+      // the function passed to it
+      const subbreedArrays = breedNames.map(breed => {
+        const subbreeds = data.message[breed]
+        // If the length is 0, there are no sub-breeds
+        if (subbreeds.length === 0) {
+          // return it as an array so we can concatenate it later to other arrays
+          return [breed]
+        } else {
+          // If there are sub-breeds, we need to merge the main breed name
+          // with the sub-breed name
+          return subbreeds.map(subbreedName => `${breed}-${subbreedName}`)
+        }
+      })
+      const flattenedBreedArray = subbreedArrays.reduce(
+        // Merge the arrays by concatenating them
+        (accumulation, currentValue) => accumulation.concat(currentValue)
+      )
+      this.setState({
+        allBreeds: flattenedBreedArray
+      })
+    })
+  }
+
+  getDogImage() {
+    this.setState({
+      breed: null,
+      url: null
+    })
+    fetch('https://dog.ceo/api/breeds/image/random')
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      this.setState({
+        url: json.message,
+        breed: json.message.split('/')[5]
+      })
+    })
+  }
+  render() {
+    return <div>
+      <DogImage url={this.state.url}/>
+      <button onClick={this.getDogImage}>New Dog</button>
+    </div>
+  }
+}
+
+```
+
 ### MultipleChoice.jsx
 
 Now we can create a component to handle creating the buttons that our user will click. This will take in the array of all breeds as a prop, as well as the current breed that `Main.jsx` has in it's state. This component will need to maintain it's own state so we can keep track of whether the guess was correct or not.
@@ -809,6 +889,72 @@ The ternary operator is a single conditional that returns a value:
 comparisonCondition ? returnValueIfTrue : returnValueIfFalse
 ```
 
+Your `MultipleChoice.jsx` will look something like this:
+
+```jsx
+import React from 'react';
+
+export default class MultipleChoice extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      choices: [],
+      correct: null
+    }
+    this.guessDog = this.guessDog.bind(this)
+    this.createChoices = this.createChoices.bind(this)
+  }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.currentBreed !== null) {
+      this.setState({
+        correct: null,
+        choices: this.createChoices(this.props.allBreeds, nextProps.currentBreed)
+      })
+    }
+  }
+
+  guessDog(breed) {
+    this.setState({
+      correct: breed === this.props.currentBreed
+    })
+  }
+
+  createChoices(allBreeds, currentBreed, length = 4) {
+    const shuffleArray = arr => (
+      // Map to array of [randomFloat, originalValue]
+      // sort based on the floats
+      // pull original values back into single array
+      arr.map(a => [Math.random(), a]).sort((a, b) => a[0] - b[0]).map(a => a[1])
+    )
+    // Remove our current breed from the possible choices before shuffling
+    // we will add it back in later to ensure its a choice
+    // NOTE: filter returns a new array and does not modify the original
+    const choicesWithoutCurrentBreed = allBreeds.filter(b => b !== currentBreed)
+    // Randomize the order of the array
+    const shuffledChoices = shuffleArray(choicesWithoutCurrentBreed)
+    // Pull the first few items off the array so we have a random selection
+    // NOTE: slice returns a new array and does not modify the original
+    const fewerChoices = shuffledChoices.slice(0, length -1)
+    // Add on our actual breed so the right answer is available
+    const choicesWithCurrentBreed = fewerChoices.concat(currentBreed)
+    // Randomize the order again so we can't predict where the real answer is
+    const shuffledFinalChoices = shuffleArray(choicesWithCurrentBreed)
+    return shuffledFinalChoices
+  }
+  render() {
+    return <div>
+      {
+        this.state.choices.map(choice => <button onClick={() =>this.guessDog(choice)}>{choice}</button>)
+      }
+      <p>{this.state.correct === null ? '' : this.state.correct ? 'Correct!' : 'Wrong!'}</p>
+    </div>
+  }
+}
+
+```
+
+
+
 ### Cleaning up
 
 There are still a few remaining quirks we need to clean up before we can call it a day, the first one being that by default, we tell a user they are wrong before they have even guessed. This is why we initially set our state of `correct` to null. Once a user guesses, `correct` will be a boolean, so we can use a null check to see if the user has guessed or not:
@@ -835,3 +981,86 @@ Now when the dog reloads, we get a clean slate to start guessing. The last thing
 ```jsx
 <p>{this.state.breed}</p>
 ```
+
+At this point, `Main.jsx` will look something like:
+
+```jsx
+import React from 'react';
+import DogImage from './DogImage'
+import MultipleChoice from './MultipleChoice'
+
+export default class Main extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      url: null,
+      breed: null,
+      allBreeds: []
+    }
+    this.getDogImage = this.getDogImage.bind(this)
+    this.getChoices = this.getChoices.bind(this)
+  }
+
+  componentWillMount() {
+    this.getChoices()
+    this.getDogImage()
+  }
+
+  getChoices() {
+    fetch('https://dog.ceo/api/breeds/list/all')
+    .then(res => res.json())
+    .then(data => {
+      // The response from the api is an object where the key is breed name
+      // and the value is an array of sub-breeds
+      const breedNames = Object.keys(data.message)
+      // Map returns a new array that is populated with the return values from
+      // the function passed to it
+      const subbreedArrays = breedNames.map(breed => {
+        const subbreeds = data.message[breed]
+        // If the length is 0, there are no sub-breeds
+        if (subbreeds.length === 0) {
+          // return it as an array so we can concatenate it later to other arrays
+          return [breed]
+        } else {
+          // If there are sub-breeds, we need to merge the main breed name
+          // with the sub-breed name
+          return subbreeds.map(subbreedName => `${breed}-${subbreedName}`)
+        }
+      })
+      const flattenedBreedArray = subbreedArrays.reduce(
+        // Merge the arrays by concatenating them
+        (accumulation, currentValue) => accumulation.concat(currentValue)
+      )
+      this.setState({
+        allBreeds: flattenedBreedArray
+      })
+    })
+  }
+
+  getDogImage() {
+    this.setState({
+      breed: null,
+      url: null
+    })
+    fetch('https://dog.ceo/api/breeds/image/random')
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      this.setState({
+        url: json.message,
+        breed: json.message.split('/')[5]
+      })
+    })
+  }
+  render() {
+    return <div>
+      <DogImage url={this.state.url}/>
+      <MultipleChoice currentBreed={this.state.breed} allBreeds={this.state.allBreeds}/>
+      <button onClick={this.getDogImage}>New Dog</button>
+    </div>
+  }
+}
+
+```
+
