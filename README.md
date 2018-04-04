@@ -652,6 +652,24 @@ render() {
 }
 ```
 
+We just need to add this to our `Main.jsx`, import it and put it in the render method:
+
+```jsx
+import MultipleChoice from './MultipleChoice'
+```
+
+```jsx
+render() {
+    return <div>
+      <DogImage url={this.state.url}/>
+      <MultipleChoice currentBreed={this.state.breed} allBreeds={this.state.allBreeds}/>
+      <button onClick={this.getDogImage}>New Dog</button>
+    </div>
+  }
+```
+
+
+
 Now whenever you get a new dog image, it will have buttons that show a few different choices (including the correct one)! The only thing left is to make it so we can have our users guess and get some feedback. Let's add a function to handle updating the state with our guess, that takes the guess as a parameter:
 
 ```jsx
@@ -817,4 +835,3 @@ Now when the dog reloads, we get a clean slate to start guessing. The last thing
 ```jsx
 <p>{this.state.breed}</p>
 ```
-
